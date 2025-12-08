@@ -4,7 +4,7 @@ from .vectorstore import VectorStore
 from .retriever import retrieve
 from .pipeline import rag_answer
 
-# New in v0.2.0
+# New in v0.2.1
 from .loaders import load_document, load_pdf, load_text, load_docx
 from .retrieval import BM25Retriever, HybridRetriever, Reranker
 

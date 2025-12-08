@@ -11,7 +11,7 @@ Lightweight, production-ready RAG toolkit with **fully offline** capabilities.
 - 🔹 **Cosine similarity search** with metadata filtering
 - 🔹 **High-level RAG pipeline** (`rag_answer`)
 
-### v0.2.0 New Features
+### v0.2.1 New Features
 - 📄 **Document loaders** (PDF, DOCX, TXT) - fully offline
 - 🔍 **Hybrid search** (BM25 + embeddings)
 - 🎯 **Cross-encoder reranking** for better accuracy
@@ -117,7 +117,7 @@ store.add_documents(texts, embeddings, doc_id="file1.pdf")
 
 See `examples/` directory:
 - `basic_rag.py` - Simple RAG pipeline
-- `advanced_rag.py` - All v0.2.0 features
+- `advanced_rag.py` - All v0.2.1 features
 
 ## License
 

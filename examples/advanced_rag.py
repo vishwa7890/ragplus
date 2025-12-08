@@ -1,5 +1,5 @@
 """
-Advanced RAG example demonstrating v0.2.0 features:
+Advanced RAG example demonstrating v0.2.1 features:
 - Document loading (PDF, DOCX, TXT)
 - Multiple embedding models (BGE, E5)
 - Hybrid search (BM25 + embeddings)
@@ -187,7 +187,7 @@ def demo_metadata_filtering():
 
 def main():
     """Run all demos."""
-    print("RAGPlus v0.2.0 - Advanced Features Demo\n")
+    print("RAGPlus v0.2.1 - Advanced Features Demo\n")
     print("=" * 50)
     
     try:
