@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragplus"
-version = "0.1.1"
+version = "0.2.0"
 description = "A lightweight toolkit for building simple and fast RAG (Retrieval-Augmented Generation) pipelines."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -15,7 +15,6 @@ authors = [
 keywords = ["rag", "retrieval", "embeddings", "vector search", "nlp", "llm"]
 classifiers = [
   "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
@@ -23,7 +22,12 @@ classifiers = [
 dependencies = [
     "numpy>=1.22.0",
     "sentence-transformers>=2.2.0",
-    "torch>=2.0.0"
+    "torch>=2.0.0",
+    "pdfplumber>=0.9.0",
+    "python-docx>=0.8.11",
+    "rank-bm25>=0.2.2",
+    "nltk>=3.8",
+    "chardet>=5.0.0"
 ]
 
 
@@ -33,3 +37,8 @@ Repository = "https://github.com/vishwa7890/ragplus"
 
 [project.scripts]
 ragplus-demo = "ragplus.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ragplus*"]
+exclude = ["ragplus_data*", "tests*", "examples*"]
