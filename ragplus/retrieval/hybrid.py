@@ -58,8 +58,13 @@ class HybridRetriever:
         # Get BM25 results (retrieve more for reranking)
         bm25_results = self.bm25.search(query, k=k*2)
         
-        # Get embedding results
-        query_emb = self.embedder.encode([query])
+        # Get embedding results with query prefix
+        try:
+            query_emb = self.embedder.encode([query], is_query=True)
+        except TypeError:
+            # Fallback for embedders without is_query parameter
+            query_emb = self.embedder.encode([query])
+        
         emb_results = self.vectorstore.search(query_emb, k=k*2, filter=filter)
         
         # Create score dictionaries

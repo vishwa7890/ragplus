@@ -15,5 +15,12 @@ def retrieve(store: VectorStore, query: str, embed_fn, k=5):
     Returns:
         List of tuples (text, metadata, score)
     """
-    query_vec = embed_fn([query]).reshape(1, -1)
+    # Try to use is_query parameter for better embeddings
+    try:
+        query_vec = embed_fn([query], is_query=True).reshape(1, -1)
+    except TypeError:
+        # Fallback for embedders without is_query parameter
+        query_vec = embed_fn([query]).reshape(1, -1)
+    
     return store.search(query_vec, k)
+

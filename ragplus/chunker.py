@@ -8,7 +8,7 @@ except ImportError:
     NLTK_AVAILABLE = False
 
 
-def chunk_text(text, size=500, overlap=50, strategy="fixed"):
+def chunk_text(text, size=500, overlap=50, strategy="fixed", embedder=None):
     """
     Split text into chunks using various strategies.
     
@@ -16,7 +16,8 @@ def chunk_text(text, size=500, overlap=50, strategy="fixed"):
         text: Input text to chunk
         size: Maximum chunk size in characters (for fixed strategy)
         overlap: Number of characters to overlap between chunks (for fixed strategy)
-        strategy: Chunking strategy - "fixed", "sentence", "markdown", or "heading"
+        strategy: Chunking strategy - "fixed", "sentence", "markdown", "heading", or "semantic"
+        embedder: Embedder instance (required for semantic strategy)
         
     Returns:
         List of text chunks
@@ -33,6 +34,10 @@ def chunk_text(text, size=500, overlap=50, strategy="fixed"):
         return _chunk_markdown(text)
     elif strategy == "heading":
         return _chunk_heading(text)
+    elif strategy == "semantic":
+        if embedder is None:
+            raise ValueError("Embedder required for semantic chunking strategy")
+        return _chunk_semantic(text, embedder, max_chunk_size=size)
     else:
         raise ValueError(f"Unknown strategy: {strategy}")
 
@@ -64,8 +69,18 @@ def _chunk_fixed(text, size=500, overlap=50):
     return chunks
 
 
-def _chunk_sentence(text, max_sentences=5):
-    """Sentence-based chunking using nltk."""
+def _chunk_sentence(text, max_sentences=5, overlap_sentences=1):
+    """
+    Sentence-based chunking with overlap for better context preservation.
+    
+    Args:
+        text: Input text
+        max_sentences: Maximum sentences per chunk
+        overlap_sentences: Number of sentences to overlap between chunks
+        
+    Returns:
+        List of text chunks with overlapping sentences
+    """
     if not NLTK_AVAILABLE:
         # Fallback to simple sentence splitting
         sentences = re.split(r'[.!?]+', text)
@@ -81,26 +96,30 @@ def _chunk_sentence(text, max_sentences=5):
                 # Fallback
                 sentences = re.split(r'[.!?]+', text)
     
-    # Group sentences into chunks
+    # Clean sentences
+    sentences = [s.strip() for s in sentences if s.strip()]
+    
+    if not sentences:
+        return []
+    
+    # Create chunks with overlap
     chunks = []
-    current_chunk = []
+    i = 0
     
-    for sent in sentences:
-        sent = sent.strip()
-        if not sent:
-            continue
+    while i < len(sentences):
+        # Get chunk sentences
+        chunk_sents = sentences[i:i + max_sentences]
         
-        current_chunk.append(sent)
+        if chunk_sents:
+            chunks.append(' '.join(chunk_sents))
         
-        if len(current_chunk) >= max_sentences:
-            chunks.append(' '.join(current_chunk))
-            current_chunk = []
-    
-    # Add remaining sentences
-    if current_chunk:
-        chunks.append(' '.join(current_chunk))
+        # Move forward by (max_sentences - overlap_sentences)
+        # This creates overlap between consecutive chunks
+        step = max(1, max_sentences - overlap_sentences)
+        i += step
     
     return chunks
+
 
 
 def _chunk_markdown(text):
@@ -145,3 +164,81 @@ def _chunk_heading(text):
             cleaned_chunks.append(chunk)
     
     return cleaned_chunks if cleaned_chunks else [text]
+
+
+def _chunk_semantic(text, embedder, similarity_threshold=0.5, max_chunk_size=500):
+    """
+    Semantic chunking based on sentence similarity.
+    Groups sentences that are semantically similar together.
+    
+    Args:
+        text: Input text to chunk
+        embedder: Embedder instance for computing sentence embeddings
+        similarity_threshold: Minimum cosine similarity to keep sentences together (0-1)
+        max_chunk_size: Maximum chunk size in characters
+        
+    Returns:
+        List of semantically coherent chunks
+    """
+    import numpy as np
+    
+    # Split into sentences
+    if NLTK_AVAILABLE:
+        try:
+            sentences = nltk.sent_tokenize(text)
+        except LookupError:
+            try:
+                nltk.download('punkt', quiet=True)
+                sentences = nltk.sent_tokenize(text)
+            except:
+                sentences = re.split(r'[.!?]+', text)
+    else:
+        sentences = re.split(r'[.!?]+', text)
+    
+    # Clean sentences
+    sentences = [s.strip() for s in sentences if s.strip()]
+    
+    if len(sentences) <= 1:
+        return [text]
+    
+    # Encode sentences
+    try:
+        embeddings = embedder.encode(sentences, is_query=False)
+    except TypeError:
+        # Fallback for older embedder without is_query parameter
+        embeddings = embedder.encode(sentences)
+    
+    # Compute cosine similarity helper
+    def cosine_sim(a, b):
+        """Compute cosine similarity between two vectors."""
+        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10)
+    
+    # Group sentences based on similarity
+    chunks = []
+    current_chunk = [sentences[0]]
+    current_length = len(sentences[0])
+    
+    for i in range(1, len(sentences)):
+        # Calculate similarity with previous sentence
+        sim = cosine_sim(embeddings[i-1], embeddings[i])
+        
+        # Check if we should add to current chunk or start new one
+        new_length = current_length + len(sentences[i]) + 1  # +1 for space
+        
+        if sim >= similarity_threshold and new_length <= max_chunk_size:
+            # Add to current chunk
+            current_chunk.append(sentences[i])
+            current_length = new_length
+        else:
+            # Start new chunk
+            if current_chunk:
+                chunks.append(' '.join(current_chunk))
+            current_chunk = [sentences[i]]
+            current_length = len(sentences[i])
+    
+    # Add final chunk
+    if current_chunk:
+        chunks.append(' '.join(current_chunk))
+    
+    return chunks if chunks else [text]
+

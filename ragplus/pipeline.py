@@ -129,7 +129,13 @@ def rag_answer(
     # 3) EMBED & STORE
     # --------------------------
     embedder = embedder or Embedder()
-    vectors = embedder.encode(chunks)
+    
+    # Encode documents (not queries)
+    try:
+        vectors = embedder.encode(chunks, is_query=False)
+    except TypeError:
+        # Fallback for embedders without is_query parameter
+        vectors = embedder.encode(chunks)
 
     # Use persistent store if specified
     if persist_dir:
